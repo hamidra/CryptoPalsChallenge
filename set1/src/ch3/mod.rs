@@ -37,15 +37,12 @@ lazy_static! {
     .collect();
 }
 
-#[allow(dead_code)]
-pub fn brute_force_table_with_number_of_valid_char_score(
-    hex_str: &str,
-) -> Vec<(Vec<char>, i32, u8)> {
+pub fn brute_force_table_with_number_of_valid_char_score(hex_str: &str) -> Vec<(String, f32, u8)> {
     // convert hex to a u8 buffer
     let bytes: Vec<u8> = decode(hex_str).expect("Invalid hex string");
 
     // iterate through all valid ascii values and use them as key to decrypt
-    let mut decrypted_table: Vec<(Vec<char>, i32, u8)> = Vec::new();
+    let mut decrypted_table: Vec<(String, f32, u8)> = Vec::new();
     for key in 0..=127 {
         let mut decrypted: Vec<char> = Vec::new();
         let mut score = 0i32;
@@ -57,10 +54,10 @@ pub fn brute_force_table_with_number_of_valid_char_score(
                 score += 1
             }
         }
-        decrypted_table.push((decrypted, score, key));
+        decrypted_table.push((decrypted.iter().collect(), score as f32, key));
     }
     // sort the encrypted messages based on score
-    decrypted_table.sort_by(|a, b| b.1.cmp(&a.1));
+    decrypted_table.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
     // return the 5 decryptions with the highest score as candidates
     decrypted_table.truncate(5);
     decrypted_table
@@ -68,10 +65,10 @@ pub fn brute_force_table_with_number_of_valid_char_score(
 
 pub fn brute_force_table_with_english_letter_frequency_score(
     hex_str: &str,
-) -> Vec<(Vec<char>, i32, u8)> {
+) -> Vec<(String, f32, u8)> {
     // convert hex to a u8 buffer
     let bytes: Vec<u8> = decode(hex_str).expect("Invalid hex string");
-    let mut decrypted_table: Vec<(Vec<char>, i32, u8)> = Vec::new();
+    let mut decrypted_table: Vec<(String, f32, u8)> = Vec::new();
 
     // iterate through all valid ascii values and use them as key to decrypt
     for key in 0..=127 {
@@ -86,11 +83,50 @@ pub fn brute_force_table_with_english_letter_frequency_score(
                 .get(&(dec as char).to_ascii_lowercase())
                 .unwrap_or(&0f32);
         }
-        decrypted_table.push((decrypted, score as i32, key));
+        decrypted_table.push((decrypted.iter().collect(), score, key));
     }
     // sort the encrypted messages based on score
-    decrypted_table.sort_by(|a, b| b.1.cmp(&a.1));
-    // return the 5 decryptions with the highest score as candidates
-    decrypted_table.truncate(1);
+    decrypted_table.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
     decrypted_table
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const ENCRYPTED: &str = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
+    #[test]
+    fn brute_force_number_of_valid_char_score() {
+        let encrypted = ENCRYPTED;
+        let mut decrypted_table = brute_force_table_with_number_of_valid_char_score(&encrypted);
+
+        // return the 5 decryptions with the highest score as candidates
+        decrypted_table.truncate(5);
+        println!("==================================top==================================");
+        for decrypted in decrypted_table.iter() {
+            println!("{:?}", decrypted);
+        }
+        println!("========================================================================");
+
+        let expected = "Cooking MC's like a pound of bacon";
+        let actual = &decrypted_table[0].0;
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn brute_force_english_letter_frequency_score() {
+        let encrypted = ENCRYPTED;
+        let mut decrypted_table = brute_force_table_with_english_letter_frequency_score(&encrypted);
+
+        // return the 5 decryptions with the highest score as candidates
+        decrypted_table.truncate(5);
+        println!("==================================top==================================");
+        for decrypted in decrypted_table.iter() {
+            println!("{:?}", decrypted);
+        }
+        println!("========================================================================");
+
+        let expected = "Cooking MC's like a pound of bacon";
+        let actual = &decrypted_table[0].0;
+        assert_eq!(expected, actual);
+    }
 }

@@ -1,5 +1,4 @@
-use set1_ch3::*;
-use std::env::current_dir;
+use crate::ch3::*;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
@@ -12,30 +11,41 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
-fn read_cipher(file_path: &str) {
-    println!("In file {}", file_path);
+pub fn find_cipher(file_path: &Path) -> (String, f32, usize, String) {
+    println!("In file {}", file_path.display());
 
     /*let contents = fs::read_to_string(file_path).expect("Something went wrong reading the file");
     println!("With text:\n{}", contents);*/
 
     // read line by line
-    let mut result: (Vec<char>, i32) = (Vec::new(), 0i32);
+    let mut result: (String, f32, usize, String) =
+        (String::from(""), 0f32, 0usize, String::from(""));
     if let Ok(lines) = read_lines(file_path) {
-        for line in lines {
+        for (idx, line) in lines.enumerate() {
             if let Ok(cipher_text) = line {
                 let decrypted = brute_force_table_with_english_letter_frequency_score(&cipher_text);
                 for dec in decrypted.into_iter() {
                     if dec.1 > result.1 {
-                        result = (dec.0, dec.1)
+                        result = (dec.0, dec.1, idx + 1, cipher_text.clone())
                     }
                 }
             }
         }
     }
     println!("{:?}", result);
+    result
 }
-fn main() {
-    let pwd = current_dir().expect("could not read the current working directory path");
-    println!("current working dir: {}", pwd.display());
-    read_cipher("/Users/hra/Code/CryptoPalsChallenge/set1/ch4/cipher.txt");
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+    #[test]
+    fn find_cipher_test() {
+        let cipher_path = Path::new("src/ch4/cipher.txt");
+        let result = find_cipher(cipher_path);
+        let expected = (&String::from("Now that the party is jumping\n"), 171);
+        let actual = (&result.0, result.2);
+        assert_eq!(expected, actual);
+    }
 }
