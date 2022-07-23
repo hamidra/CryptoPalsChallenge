@@ -1,6 +1,6 @@
-use hex::decode;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
+use std::str;
 
 lazy_static! {
     static ref OCCURANCE_ENGLISH: HashMap<char, f32> = [
@@ -37,56 +37,58 @@ lazy_static! {
     .collect();
 }
 
-pub fn brute_force_table_with_number_of_valid_char_score(hex_str: &str) -> Vec<(String, f32, u8)> {
-    // convert hex to a u8 buffer
-    let bytes: Vec<u8> = decode(hex_str).expect("Invalid hex string");
-
+pub fn brute_force_table_with_number_of_valid_char_score(
+    bytes: &Vec<u8>,
+    return_count: usize,
+) -> Vec<(Vec<u8>, f32, u8)> {
     // iterate through all valid ascii values and use them as key to decrypt
-    let mut decrypted_table: Vec<(String, f32, u8)> = Vec::new();
+    let mut decrypted_table: Vec<(Vec<u8>, f32, u8)> = Vec::new();
     for key in 0..=127 {
-        let mut decrypted: Vec<char> = Vec::new();
+        let mut decrypted = Vec::new();
         let mut score = 0i32;
         for byte in bytes.iter() {
             let dec = byte ^ key;
-            decrypted.push(dec as char);
+            decrypted.push(dec);
             // calculate the score as the number of valid alphabet letters [a-z]/[A-Z] in the decryoted message
             if (dec <= 90 && dec >= 65) || (dec <= 122 && dec >= 97) {
                 score += 1
             }
         }
-        decrypted_table.push((decrypted.iter().collect(), score as f32, key));
+        decrypted_table.push((decrypted.into_iter().collect(), score as f32, key));
     }
     // sort the encrypted messages based on score
     decrypted_table.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-    // return the 5 decryptions with the highest score as candidates
-    decrypted_table.truncate(5);
+
+    // return top decryptions with the highest score as candidates
+    decrypted_table.truncate(return_count);
     decrypted_table
 }
 
 pub fn brute_force_table_with_english_letter_frequency_score(
-    hex_str: &str,
-) -> Vec<(String, f32, u8)> {
+    bytes: &Vec<u8>,
+    return_count: usize,
+) -> Vec<(Vec<u8>, f32, u8)> {
     // convert hex to a u8 buffer
-    let bytes: Vec<u8> = decode(hex_str).expect("Invalid hex string");
-    let mut decrypted_table: Vec<(String, f32, u8)> = Vec::new();
+    let mut decrypted_table: Vec<(Vec<u8>, f32, u8)> = Vec::new();
 
     // iterate through all valid ascii values and use them as key to decrypt
     for key in 0..=127 {
-        let mut decrypted: Vec<char> = Vec::new();
+        let mut decrypted = Vec::new();
         let mut score = 0f32;
         for byte in bytes.iter() {
             let dec = byte ^ key;
-            decrypted.push(dec as char);
+            decrypted.push(dec);
             // consider the score for each character as it's occurence frequency in english text
             // ref: https://en.wikipedia.org/wiki/Letter_frequency
             score += OCCURANCE_ENGLISH
                 .get(&(dec as char).to_ascii_lowercase())
                 .unwrap_or(&0f32);
         }
-        decrypted_table.push((decrypted.iter().collect(), score, key));
+        decrypted_table.push((decrypted.into_iter().collect(), score, key));
     }
     // sort the encrypted messages based on score
     decrypted_table.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+    decrypted_table.truncate(return_count);
     decrypted_table
 }
 
@@ -97,36 +99,38 @@ mod tests {
     #[test]
     fn brute_force_number_of_valid_char_score() {
         let encrypted = ENCRYPTED;
-        let mut decrypted_table = brute_force_table_with_number_of_valid_char_score(&encrypted);
+        let bytes: Vec<u8> = hex::decode(encrypted).expect("Invalid hex string");
+        let decrypted_table = brute_force_table_with_number_of_valid_char_score(&bytes, 5);
 
-        // return the 5 decryptions with the highest score as candidates
-        decrypted_table.truncate(5);
+        /*
         println!("==================================top==================================");
         for decrypted in decrypted_table.iter() {
             println!("{:?}", decrypted);
         }
         println!("========================================================================");
+        */
 
         let expected = "Cooking MC's like a pound of bacon";
-        let actual = &decrypted_table[0].0;
+        let actual = str::from_utf8(&decrypted_table[0].0).unwrap();
         assert_eq!(expected, actual);
     }
 
     #[test]
     fn brute_force_english_letter_frequency_score() {
         let encrypted = ENCRYPTED;
-        let mut decrypted_table = brute_force_table_with_english_letter_frequency_score(&encrypted);
+        let bytes: Vec<u8> = hex::decode(encrypted).expect("Invalid hex string");
+        let decrypted_table = brute_force_table_with_english_letter_frequency_score(&bytes, 5);
 
-        // return the 5 decryptions with the highest score as candidates
-        decrypted_table.truncate(5);
+        /*
         println!("==================================top==================================");
         for decrypted in decrypted_table.iter() {
             println!("{:?}", decrypted);
         }
         println!("========================================================================");
+        */
 
         let expected = "Cooking MC's like a pound of bacon";
-        let actual = &decrypted_table[0].0;
+        let actual = str::from_utf8(&decrypted_table[0].0).unwrap();
         assert_eq!(expected, actual);
     }
 }

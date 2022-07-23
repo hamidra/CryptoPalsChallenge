@@ -11,7 +11,7 @@ pub fn encrypt_xor(text: &str, key: &str) -> String {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     #[test]
     fn encrypt_with_xor_key_success() {
