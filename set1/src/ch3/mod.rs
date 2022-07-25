@@ -1,6 +1,5 @@
 use lazy_static::lazy_static;
 use std::collections::HashMap;
-use std::str;
 
 lazy_static! {
     static ref OCCURANCE_ENGLISH: HashMap<char, f32> = [
@@ -95,6 +94,7 @@ pub fn brute_force_table_with_english_letter_frequency_score(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str;
     const ENCRYPTED: &str = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
     #[test]
     fn brute_force_number_of_valid_char_score() {

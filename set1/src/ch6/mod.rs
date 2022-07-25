@@ -119,7 +119,7 @@ mod tests {
     }
 
     #[test]
-    fn find_keysize_success() {
+    fn crack_repeating_key_xor_test() {
         let text = crack_repeating_key_xor(FILE).unwrap();
         assert_eq!(&text, CRACKED);
     }

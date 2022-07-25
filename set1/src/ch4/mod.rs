@@ -2,7 +2,6 @@ use crate::ch3::*;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
-use std::str;
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where
@@ -38,6 +37,7 @@ pub fn find_cipher(file_path: &Path) -> (Vec<u8>, f32, usize, String) {
 mod tests {
     use super::*;
     use std::path::Path;
+    use std::str;
     #[test]
     fn find_cipher_test() {
         let cipher_path = Path::new("src/ch4/cipher.txt");
