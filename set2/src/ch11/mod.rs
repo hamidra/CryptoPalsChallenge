@@ -3,6 +3,8 @@ use openssl::{
     symm::{encrypt, Cipher},
 };
 use rand::Rng;
+use set1::ch8::detect_aes_ecb_cipher;
+
 pub fn keygen(key_length: usize) -> Vec<u8> {
     let mut rng = rand::thread_rng();
     let key = (0..key_length).map(|_| rng.gen::<u8>()).collect();
@@ -23,7 +25,7 @@ pub fn encrypt_ecb(key: &[u8], data: &[u8]) -> Result<Vec<u8>, ErrorStack> {
     encrypt(cipher, key, None, data)
 }
 
-pub fn encryption_oracle(input: &str) -> Vec<u8> {
+pub fn encryption_oracle(input: &str) -> (bool, Vec<u8>) {
     // create a random 16 byte key
     let key = keygen(16);
 
@@ -38,14 +40,14 @@ pub fn encryption_oracle(input: &str) -> Vec<u8> {
     padded.extend(padding.clone());
 
     // pick EBC half time and CBC the other half
-    let do_ecb: bool = rng.gen_ratio(1, 2);
+    let is_ecb: bool = rng.gen_ratio(1, 2);
 
-    let result = if do_ecb {
+    let result = if is_ecb {
         encrypt_ecb(&key[..], &padded[..])
     } else {
         encrypt_cbc(&key[..], &padded[..])
     };
-    result.unwrap()
+    (is_ecb, result.unwrap())
 }
 
 #[cfg(test)]
@@ -63,9 +65,31 @@ mod tests {
     #[test]
     fn encryption_oracle_sucess() {
         let test_text = "This is test text to be enctypted by oracle!!";
-        let cipher_text1 = encryption_oracle(test_text);
-        println!("cipher text 1: {:?}", cipher_text1);
-        let cipher_text2 = encryption_oracle(test_text);
-        println!("cipher text 2: {:?}", cipher_text2);
+        let (is_ecb1, cipher_text1) = encryption_oracle(test_text);
+        println!(
+            "cipher text 1: {:?}, is_ecb?:{}",
+            base64::encode(cipher_text1),
+            is_ecb1
+        );
+        let (is_ecb2, cipher_text2) = encryption_oracle(test_text);
+        println!(
+            "cipher text 2: {:?}, is_ecb?:{}",
+            base64::encode(cipher_text2),
+            is_ecb2
+        );
+    }
+    #[test]
+    fn detect_ecb_success() {
+        let oracle_text: String = vec!['A'; 4 * 16].into_iter().collect();
+        for n in 1..1000 {
+            let (is_ecb, cipher_text) = encryption_oracle(&oracle_text[..]);
+            let cipher_texts = &vec![cipher_text];
+            let mut ecb_detected = false;
+            if let Some(ecb_detection) = detect_aes_ecb_cipher(cipher_texts) {
+                ecb_detected = ecb_detection.0 > 1;
+            }
+
+            assert_eq!(is_ecb, ecb_detected);
+        }
     }
 }
